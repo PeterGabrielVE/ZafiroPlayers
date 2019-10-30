@@ -36,12 +36,12 @@ public class Reproduccion {
     private boolean fin = false;
     private boolean acabar = false;
     
-    public void inicializar(Ventana ventana){
+        public void inicializar(Ventana ventana){
 		this.ventana = ventana;
 		this.mediaPlayer = ventana.mediaPlayer;
 	}
     
-    public void abrirArchivo(){
+        public void abrirArchivo(){
             JFileChooser fileChooser = new JFileChooser(new File("Videos"));
             fileChooser.setDialogTitle("Abrir Archivo de Audio o Video");
             fileChooser.setFileView(new FileView(){
@@ -63,7 +63,7 @@ public class Reproduccion {
 		reproducir(ficheroVideo);
 	}
     
-    public void habilitar(){
+        public void habilitar(){
 		
 		ventana.btAdelantar.setEnabled(true);
 		ventana.btPause.setEnabled(true);
@@ -76,7 +76,8 @@ public class Reproduccion {
 		
 		
 	}
-    public void reproducir(String fichero){
+        
+        public void reproducir(String fichero){
 		
 		try {
                     try (PrintWriter reciente = new PrintWriter (new BufferedWriter(new FileWriter("Reciente", true)))) {
@@ -118,4 +119,170 @@ public class Reproduccion {
 		});
 		hilo.start();
 	}
+        
+        public void reproducirLista(ArrayList<String> listar){
+		this.lista = listar;
+		acabar = false;
+		
+		Thread hilo = new Thread(new Runnable(){
+
+			@Override
+			public void run() {
+				
+				for(int i = 0; i < lista.size(); i++){
+					habilitar();
+					reproducir(lista.get(i));
+					while(fin == false){
+						try {
+                                                    if(mediaPlayer.getMediaPlayer().getTime() > mediaPlayer.getMediaPlayer().getLength()-3000){
+                                                            mediaPlayer.getMediaPlayer().setTime(mediaPlayer.getMediaPlayer().getLength());
+                                                    }
+                                                    else{
+                                                        Thread.sleep(1000);
+                                                    }
+							
+						} catch (InterruptedException e) {}
+					}
+					if(acabar == true){
+						break;
+					}
+					fin = false;
+				}
+				deshabilitar();
+				acabar = false;
+			}
+		});
+		hilo.start();
+	}
+    
+        private void deshabilitar(){
+		
+		ventana.btAdelantar.setEnabled(false);
+		ventana.btPause.setEnabled(false);
+		ventana.btPlay.setEnabled(false);
+		ventana.btRetrasar.setEnabled(false);
+		ventana.btStop.setEnabled(false);
+		
+		ventana.slTiempo.setEnabled(false);
+		ventana.slVolumen.setEnabled(false);
+	}
+        
+        public void setAcabar(boolean acabar) {
+		this.acabar = acabar;
+	}
+    
+        public void reproducirDVD(String ruta){
+		
+		mediaPlayer.getMediaPlayer().playMedia(ruta);
+		
+		ventana.dimension = mediaPlayer.getMediaPlayer().getCropGeometry();
+		
+		Thread hilo = new Thread(new Runnable(){
+			
+			@Override
+			public void run() {
+				
+				while(mediaPlayer.getMediaPlayer().getLength() == 0){
+					try {
+						Thread.sleep(500);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				ventana.slTiempo.setMaximum((int) mediaPlayer.getMediaPlayer().getLength());
+				
+				habilitar();
+				while(mediaPlayer.getMediaPlayer().getTime() < mediaPlayer.getMediaPlayer().getLength()){
+					if(ventana.tiempo == true){
+						try {
+							Thread.sleep(500);
+							
+							ventana.slTiempo.setValue((int) mediaPlayer.getMediaPlayer().getTime());
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+				fin = true;
+			}
+		});
+		hilo.start();
+	}
+	
+	public void reproducirCD(String ruta){
+		
+		mediaPlayer.getMediaPlayer().playMedia(ruta);
+		
+		Thread hilo = new Thread(new Runnable(){
+			
+			@Override
+			public void run() {
+				while(mediaPlayer.getMediaPlayer().getLength() == 0){
+					try {
+						Thread.sleep(500);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				ventana.slTiempo.setMaximum((int) mediaPlayer.getMediaPlayer().getLength());
+				
+				while(mediaPlayer.getMediaPlayer().getTime() < mediaPlayer.getMediaPlayer().getLength()){
+					if(ventana.tiempo == true){
+						try {
+							Thread.sleep(500);
+							
+							ventana.slTiempo.setValue((int) mediaPlayer.getMediaPlayer().getTime());
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+				}
+				fin = true;
+			}
+		});
+		hilo.start();
+	}
+        
+        public void play(){
+		
+		mediaPlayer.getMediaPlayer().play();
+		
+		ventana.btPlay.setEnabled(false);
+		ventana.btPause.setEnabled(true);
+	}
+        
+        public void pausar(){
+		
+		mediaPlayer.getMediaPlayer().pause();
+		
+		ventana.btPlay.setEnabled(true);
+		ventana.btPause.setEnabled(false);
+	}
+	
+	public void stop(){
+		
+		mediaPlayer.getMediaPlayer().stop();
+		deshabilitar();
+	}
+        
+        public void subtitulos(){
+		
+		JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileView(new FileView(){
+                public Icon getIcon(File f){
+                    return FileSystemView.getFileSystemView().getSystemIcon(f);
+                }
+            });
+            fileChooser.setFileFilter(new FileNameExtensionFilter("Archivo de subtitulo","sub"));
+            fileChooser.setAcceptAllFileFilterUsed(false);
+            fileChooser.setDialogTitle("Abrir Archivo de Subtitulo");
+            JDialog dialogo = new JDialog();
+            dialogo.setIconImage(Toolkit.getDefaultToolkit().getImage("icon.png"));
+		if (fileChooser.showOpenDialog(dialogo) == JFileChooser.CANCEL_OPTION)
+			return;
+		
+		mediaPlayer.getMediaPlayer().setSubTitleFile(fileChooser.getSelectedFile());
+		
+	}
+	
 }
